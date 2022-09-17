@@ -1,4 +1,4 @@
-package flink.examples.datastream._04._4_17;
+package flink.examples.datastream._04._4_15;
 
 import java.time.Duration;
 
@@ -10,19 +10,17 @@ import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
-import org.apache.flink.streaming.api.windowing.assigners.EventTimeSessionWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
-
-import com.google.common.collect.Lists;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-public class SessionWindowExamples {
+public class TumbleWindowExamples2 {
 
     public static void main(String[] args) throws Exception {
         // 1. 获取执行环境
@@ -30,39 +28,44 @@ public class SessionWindowExamples {
         // 2.(1) 从 App1 读入数据
         DataStream<InputModel> app1Source = env.addSource(new UserDefinedSource1());
 
-        env.setParallelism(1);
+        WatermarkStrategy<InputModel> watermarkStrategy = WatermarkStrategy
+                .<InputModel>forBoundedOutOfOrderness(Duration.ZERO)
+                .withTimestampAssigner(new SerializableTimestampAssigner<InputModel>() {
+                    @Override
+                    public long extractTimestamp(InputModel o, long l) {
+                        // 我们使用了数据中自带的时间戳作为事件时间的时间戳
+                        return o.getTimestamp();
+                    }
+                });
 
         // 2.(2) 转换数据
-        DataStream<OutputModel> transformation = app1Source
-                .assignTimestampsAndWatermarks(
-                        WatermarkStrategy
-                                .<InputModel>forBoundedOutOfOrderness(Duration.ZERO)
-                                .withTimestampAssigner(new SerializableTimestampAssigner<InputModel>() {
-                                    @Override
-                                    public long extractTimestamp(InputModel o, long l) {
-                                        return o.getTimestamp();
-                                    }
-                                })
-                )
-                .keyBy(i -> i.getUserId())
-                .window(EventTimeSessionWindows.withGap(Time.minutes(5)))
-                .apply(new WindowFunction<InputModel, OutputModel, Long, TimeWindow>() {
+        DataStream<InputModel> transformation = app1Source
+                .assignTimestampsAndWatermarks(watermarkStrategy)
+                .keyBy(i -> i.getProductId())
+                .window(TumblingEventTimeWindows.of(Time.seconds(10)))
+                .apply(new WindowFunction<InputModel, InputModel, String, TimeWindow>() {
                     @Override
-                    public void apply(Long s, TimeWindow window, Iterable<InputModel> input,
-                            Collector<OutputModel> out) throws Exception {
+                    public void apply(String s, TimeWindow window, Iterable<InputModel> input,
+                            Collector<InputModel> out) throws Exception {
+                        long income = 0L;
+                        String productId = null;
+                        for (InputModel inputModel : input) {
+                            productId = inputModel.getProductId();
+                            income += inputModel.getIncome();
+                        }
                         out.collect(
-                                OutputModel
-                                        .builder()
-                                        // 商品个数就是输入数据的 size
-                                        .count(Lists.newArrayList(input).size())
-                                        .timestamp(window.getStart())
-                                        .build()
+                                InputModel
+                                .builder()
+                                .productId(productId)
+                                .income(income)
+                                .timestamp(window.getStart())
+                                .build()
                         );
                     }
                 });
 
         // 2.(3) 写出数据到控制台
-        DataStreamSink<OutputModel> sink = transformation.print();
+        DataStreamSink<InputModel> sink = transformation.print();
 
         // 3. 触发程序执行
         env.execute();
@@ -80,11 +83,13 @@ public class SessionWindowExamples {
                 ctx.collect(
                         InputModel
                                 .builder()
-                                .userId(1L)
+                                .productId("产品" + i % 5)
+                                .income(i)
+                                .userId(i)
                                 .timestamp(System.currentTimeMillis())
                                 .build()
                 );
-                Thread.sleep(5000);
+                Thread.sleep(1000);
             }
         }
 
@@ -99,16 +104,9 @@ public class SessionWindowExamples {
     @AllArgsConstructor
     @Builder
     public static class InputModel {
+        private String productId;
+        private long income;
         private long userId;
-        private long timestamp;
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class OutputModel {
-        private long count;
         private long timestamp;
     }
 

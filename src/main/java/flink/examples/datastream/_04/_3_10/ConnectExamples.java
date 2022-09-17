@@ -31,6 +31,7 @@ public class ConnectExamples {
         ConnectedStreams<InputModel1, InputModel2> connectedStreams = app1Source.connect(app2Source);
         DataStream<OutputModel> transformation = connectedStreams
                 .flatMap(new CoFlatMapFunction<InputModel1, InputModel2, OutputModel>() {
+
                     @Override
                     public void flatMap1(InputModel1 value, Collector<OutputModel> out) throws Exception {
                         out.collect(

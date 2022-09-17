@@ -17,6 +17,8 @@ public class KeybyExamples {
         // 1. 获取执行环境
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(ParameterTool.fromArgs(args).getConfiguration());
 
+        env.setParallelism(2);
+
         // 2.(1) 从 App1 读入数据
         DataStream<InputModel> app1Source = env.addSource(new UserDefinedSource1());
 

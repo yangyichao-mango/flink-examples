@@ -52,7 +52,7 @@ public class SlidingWindowExamples {
                         return "0";
                     }
                 })
-                .window(SlidingEventTimeWindows.of(Time.minutes(5), Time.minutes(1)))
+                .window(SlidingEventTimeWindows.of(Time.minutes(2), Time.minutes(1)))
                 .apply(new WindowFunction<InputModel, OutputModel, String, TimeWindow>() {
                     @Override
                     public void apply(String s, TimeWindow window, Iterable<InputModel> input,

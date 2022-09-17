@@ -1,15 +1,32 @@
-package flink.examples.datastream._04._3_4;
+package flink.examples.datastream._04._4_33;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.connector.base.DeliveryGuarantee;
+import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
+import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 
-public class KafkaSourceExamples {
+
+// https://www.jianshu.com/p/5491d16e6abd
+// https://www.jianshu.com/p/dd2578d47ff6
+
+// > cd zookeeper-3.4.10/bin //切换到 bin目录
+//> ./zkServer.sh start //启动
+//
+//> ./kafka-server-start /usr/local/etc/kafka/server.properties &
+//
+//> kafka-topics --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic
+// flink-kafka-source-example
+//
+//
+//> kafka-topics --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic
+// flink-kafka-sink-example
+public class KafkaSinkExamples {
 
     public static void main(String[] args) throws Exception {
         // 1. 获取执行环境
@@ -32,8 +49,22 @@ public class KafkaSourceExamples {
         // 2.(2) 转换数据
         DataStream<String> transformation = source.map(v -> v.split(" ")[0] + "-kafka-examples");
 
-        // 2.(3) 写出数据到控制台
-        DataStreamSink<String> sink = transformation.print();
+        Integer[] i = null;
+
+        KafkaSink<String> kafkaSink = KafkaSink.<String>builder()
+                .setBootstrapServers("localhost:9092")
+                .setRecordSerializer(
+                    KafkaRecordSerializationSchema
+                            .builder()
+                            .setTopic("flink-kafka-sink-example")
+                            .setValueSerializationSchema(new SimpleStringSchema())
+                            .build()
+                )
+                .setDeliverGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+                .build();
+
+        // 2.(3) 写出数据 Kafka
+        DataStreamSink<String> sink = transformation.sinkTo(kafkaSink);
 
         // 3. 触发程序执行
         env.execute();

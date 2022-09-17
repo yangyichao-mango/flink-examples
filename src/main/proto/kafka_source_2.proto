@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package flink;
+
+option java_package = "flink.examples.datastream._04._3_4.protobuf";
+option java_outer_classname = "KafkaSource2Class";
+option java_multiple_files = true;
+
+message KafkaSource2Model {
+    string name = 1;
+}

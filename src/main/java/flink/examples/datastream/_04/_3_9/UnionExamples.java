@@ -1,6 +1,7 @@
 package flink.examples.datastream._04._3_9;
 
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -13,7 +14,8 @@ public class UnionExamples {
 
     public static void main(String[] args) throws Exception {
         // 1. 获取执行环境
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(
+                ParameterTool.fromArgs(args).getConfiguration());
 
         // 2.(1) 从 Kafka 读入数据
         DataStream<InputModel> app1Source = env.addSource(new UserDefinedSource());

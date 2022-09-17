@@ -1,6 +1,9 @@
 package flink.examples.datastream._04._3_6;
 
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -13,6 +16,9 @@ public class MapExamples {
 
     public static void main(String[] args) throws Exception {
         // 1. 获取执行环境
+        ParameterTool p = ParameterTool.fromArgs(args);
+        Configuration c = p.getConfiguration();
+        c.setInteger(RestOptions.PORT, RestOptions.PORT.defaultValue());
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         env.setParallelism(1);
@@ -28,14 +34,10 @@ public class MapExamples {
                         // 0-12、12-18、18-30、30-50、50+
                         int age = inputModel.getAge();
                         String ageRange = "UNKNOWN";
-                        if (age >= 0 && age < 12) {
-                            ageRange = "0-12";
-                        } else if (age >= 12 && age < 18) {
-                            ageRange = "12-18";
-                        } else if (age >= 18 && age < 30) {
-                            ageRange = "18-30";
-                        } else if (age >= 30 && age < 50) {
-                            ageRange = "30-50";
+                        if (age >= 0 && age < 18) {
+                            ageRange = "0-18";
+                        } else if (age >= 18 && age < 50) {
+                            ageRange = "18-50";
                         } else if (age >= 50) {
                             ageRange = "50+";
                         }
